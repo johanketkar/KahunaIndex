@@ -3,19 +3,28 @@ import pandas as pd
 scd_df = pd.read_csv(
     r'/Users/johanketkar/Projects/KahunaIndex/shortchartdetail.csv')
 
+pdbc_1min_5pt_df = pd.read_csv(
+    r'/Users/johanketkar/Projects/KahunaIndex/playerdashbyclutch1min5point.csv')
+
 scd_dict = {}
+pdbc_1min_5pt_dict = {}
 kahuna_dict = {}
 
 grouped = scd_df.groupby(scd_df.PLAYER_NAME)
+pdbc_1min_5pt_grouped = pdbc_1min_5pt_df.groupby(pdbc_1min_5pt_df.PLAYER_NAME)
 
 for key, item in grouped:
     scd_dict[key] = grouped.get_group(key)
 
+for key, item in pdbc_1min_5pt_grouped:
+    pdbc_1min_5pt_dict[key] = pdbc_1min_5pt_grouped.get_group(key)
 
-def calculate(df):
+
+def calculate(sc_df, pdbc_df):
     longshot_total = 0
+    clutch_attempts = 0
     late_game = False
-    for index, row in df.iterrows():
+    for index, row in sc_df.iterrows():
         if(row['PERIOD'] == 4 and row['MINUTES_REMAINING'] <= 5):
             late_game = True
         else:
@@ -26,7 +35,11 @@ def calculate(df):
             else:
                 longshot_total += (row['SHOT_DISTANCE'] - 24)/100
 
-    return round(longshot_total, 2)
+    for index, row in pdbc_df.iterrows():
+        if(row['FGA']):
+            clutch_attempts = row['FGA']
+
+    return round(longshot_total+clutch_attempts, 2)
 
 
 def normalize(d, target=100.0):
@@ -36,7 +49,8 @@ def normalize(d, target=100.0):
 
 
 for player in scd_dict:
-    kahuna_dict[player] = calculate(scd_dict[player])
+    kahuna_dict[player] = calculate(
+        scd_dict[player], pdbc_1min_5pt_dict[player])
 
 norm_kahuna_dict = normalize(kahuna_dict)
 
